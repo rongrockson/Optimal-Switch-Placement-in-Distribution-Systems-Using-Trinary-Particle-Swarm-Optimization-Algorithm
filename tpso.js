@@ -203,7 +203,7 @@ function calculateDistance(vector1, vector2) {
 }
 
 function transformationFunction(distance, constant) {
-  return 1 / (1 + Math.exp(-constant * (distance - 1 / 3)));
+  return 1 / (1 + Math.exp(-constant * (distance - Math.PI / 3)));
 }
 
 function updateVelocity(velocity, personalBest, globalBest, r1, r2, c1, c2) {
@@ -280,29 +280,17 @@ function calculateECOSTForContingency(contingency, system) {
 
   // Calculate the ECOST for the de-energized load points
   if (!firstSectionalizer) {
-    const deEnergizedLoadPoints = findDeEnergizedLoadPoints(firstBreaker + 1, system);
+    const deEnergizedLoadPoints = findDeEnergizedLoadPoints(firstBreaker, system);
     for (const loadPoint of deEnergizedLoadPoints) {
       totalECOST += calculateECOSTForLoadPoint(loadPoint, repairTime);
     }
   } else {
-    // Calculate ECOST for the sectionalizer switching time
-    const deEnergizedLoadPoints = findDeEnergizedLoadPoints(firstBreaker + 1, system);
-    const sectionalizerSwitchingTime = 5;
-    for (const loadPoint of deEnergizedLoadPoints) {
-      totalECOST += calculateECOSTForLoadPoint(loadPoint, sectionalizerSwitchingTime);
-    }
 
     // Calculate ECOST for the loop switch switching time
-    const newDeEnergizedLoadPoints = findDeEnergizedLoadPoints(firstSectionalizer + 1, system);
+    const newDeEnergizedLoadPoints = findDeEnergizedLoadPoints(firstSectionalizer, system);
     const loopSwitchSwitchingTime = 5;
     for (const loadPoint of newDeEnergizedLoadPoints) {
       totalECOST += calculateECOSTForLoadPoint(loadPoint, loopSwitchSwitchingTime);
-    }
-
-    // Calculate ECOST for the remaining repair time
-    const remainingFaultyZone = findDeEnergizedLoadPoints(faultedSection, system);
-    for (const loadPoint of remainingFaultyZone) {
-      totalECOST += calculateECOSTForLoadPoint(loadPoint, repairTime);
     }
   }
 
@@ -371,7 +359,7 @@ function tpso(system) {
     for (let i = 0; i < swarmSize; i++) {
       const particle = swarm[i];
       const fitness = calculateFitness(particle.position, system.distributionSystem);
-      // console.log(i + " " + fitness);
+      console.log(i + " " + fitness);
 
       if (fitness < particle.fitness) {
         // console.log("satisfied 1");
@@ -396,7 +384,7 @@ function tpso(system) {
       let newPosition = updatePosition(particle.position, newVelocity);
 
       // Calculate the transformations using the new position
-      const distances = calculateDistance(newPosition, [Math.PI / 6, Math.PI / 2, (5 * Math.PI) / 6]);
+      const distances = calculateDistance(newPosition, [Math.PI / 3, Math.PIs, (5 * Math.PI) / 3]);
       const transformations = distances.map(distance => transformationFunction(distance, 1));
 
       // Update the particle's position based on transformations
