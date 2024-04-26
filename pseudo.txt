@@ -1,0 +1,46 @@
+TPSO(distributionSystem, contingencyScenarios, customerDamageFunctions, loadData, sectionalizerCost, breakerCost)
+    Initialize swarm with random positions and velocities
+    Initialize global best solution and fitness
+    
+    for each iteration:
+        for each particle in swarm:
+            Calculate particle's fitness using calculateFitness
+            Update particle's personal best position and fitness if current fitness is better
+            Update global best position and fitness if current fitness is better than global best
+            
+            find new position and new velocity with updatePosition and updateVelocity
+            
+            Calculate distances from particle's position to reference angles
+            Apply transformation function to distances
+            
+            Update particle's velocity
+            Update particle's position
+    
+    return global best solution and fitness
+
+calculateFitness(position, distributionSystem)
+    Decode position to switch types (none, sectionalizer, breaker)
+    Create system with decoded switch types
+    
+    Initialize total cost to 0
+    for each contingency scenario:
+        Calculate cost for the contingency using calculateECOSTForContingency
+        Add cost to total cost
+    
+    Calculate investment cost based on switch types and costs
+    Return total cost + investment cost
+
+calculateECOSTForContingency(contingency, system)
+    Initialize total cost to 0
+    Find first breaker and sectionalizer upstream of faulted section
+    
+    if no breaker found:
+        Calculate cost for all load points with repair time
+    else if no sectionalizer found:
+        Calculate cost for de-energized load points upstream of breaker with repair time
+    else:
+        Calculate cost for de-energized load points between breaker and sectionalizer with sectionalizer switching time
+        Calculate cost for de-energized load points between sectionalizer and faulted section with loop switch switching time
+        Calculate cost for remaining faulty zone with repair time
+    
+    Return total cost

@@ -179,8 +179,7 @@ const scenarios = [
   }
 ]
 
-function setUpSystem(index) {
-  const system = scenarios[index];
+function setUpSystem(system) {
   distributionSystem = system.distributionSystem;
   contingencyScenarios = system.contingencyScenarios;
   customerDamageFunctions = system.customerDamageFunctions;
@@ -188,20 +187,6 @@ function setUpSystem(index) {
   sectionalizerCost = system.sectionalizerCost;
   breakerCost = system.breakerCost;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Helper functions
 // Helper functions for TPSO
@@ -382,11 +367,11 @@ function tpso(system) {
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     let bestFitness = Infinity;
 
-    console.log("Fitness calculated before reaching optimal solution")
+    // console.log("Fitness calculated before reaching optimal solution")
     for (let i = 0; i < swarmSize; i++) {
       const particle = swarm[i];
       const fitness = calculateFitness(particle.position, system.distributionSystem);
-      console.log(i + " " + fitness);
+      // console.log(i + " " + fitness);
 
       if (fitness < particle.fitness) {
         // console.log("satisfied 1");
@@ -407,11 +392,12 @@ function tpso(system) {
       const r1 = Math.random();
       const r2 = Math.random();
 
-      const distances = calculateDistance(particle.position, [Math.PI / 6, Math.PI / 2, (5 * Math.PI) / 6]);
-      const transformations = distances.map(distance => transformationFunction(distance, 1));
-
       const newVelocity = updateVelocity(particle.velocity, particle.personalBest, globalBest, r1, r2, c1, c2);
       let newPosition = updatePosition(particle.position, newVelocity);
+
+      // Calculate the transformations using the new position
+      const distances = calculateDistance(newPosition, [Math.PI / 6, Math.PI / 2, (5 * Math.PI) / 6]);
+      const transformations = distances.map(distance => transformationFunction(distance, 1));
 
       // Update the particle's position based on transformations
       newPosition = newPosition.map((angle, index) => {
@@ -437,11 +423,27 @@ function tpso(system) {
   return { globalFitness: globalFitness, globalBest: mapAnglesToStates(globalBest) }
 }
 
-for (let i = 0; i < 1; i++) {
-  setUpSystem(i);
+function generateRandomContingencyScenarios(numScenarios, system) {
+  const contingencyScenarios = [];
+  const numSections = system.distributionSystem.length;
+
+  for (let i = 0; i < numScenarios; i++) {
+    const faultedSection = Math.floor(Math.random() * numSections);
+    const repairTime = Math.floor(Math.random() * 24) + 1; // Random repair time between 1 and 24 hours
+    contingencyScenarios.push({ faultedSection, repairTime });
+  }
+
+  return contingencyScenarios;
+}
+
+// ...
+
+for (let i = 0; i < scenarios.length; i++) {
   const system = scenarios[i];
+  setUpSystem(system);
+  system.contingencyScenarios = generateRandomContingencyScenarios(1000, system);
   console.log(`Scenario ${i + 1}`);
   const solution = tpso(system);
-  console.log("Final best global fitness "+solution.globalFitness);
-  console.log("Final switch placement "+solution.globalBest);
+  console.log("Final best global fitness " + solution.globalFitness);
+  console.log("Final switch placement " + solution.globalBest);
 }

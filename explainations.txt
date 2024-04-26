@@ -1,0 +1,61 @@
+The calculateDistance function and the constants used in it, along with the subsequent transformation and position update process, are based on the concept of mapping the particle's position (angle) to one of the three states (no switch, sectionalizer, or breaker) in the TPSO algorithm.
+The logic behind the calculateDistance function is as follows:
+
+The particle's position is represented as an angle in the range [0, 2π).
+The three possible states are represented by three angles: 0 (no switch), π/3 (sectionalizer), and 2π/3 (breaker).
+The calculateDistance function calculates the distance between the particle's current position angle and each of these three state angles.
+However, since angles wrap around at 2π, the function takes the minimum of the absolute difference between the angles and the wrapped distance (2π - absolute difference) to find the shortest distance.
+
+The purpose of calculating these distances is to determine how close the particle's position is to each of the three states. This information is then used in the transformation function to map the distances to probabilities.
+The transformation function (transformationFunction in the code) is designed to map the distances to the range [0, 1], where values closer to 0 represent a higher probability of being in that state, and values closer to 1 represent a lower probability.
+The specific transformation function used is:
+javascriptCopy codetransformationFunction(distance, constant) {
+  return 1 / (1 + Math.exp(-constant * (distance - 1 / 3)));
+}
+This function has the shape of a sigmoid curve, which is commonly used in probability calculations. The constant parameter allows adjusting the steepness of the curve, affecting how quickly the function transitions between 0 and 1 as the distance changes.
+The logic behind using this transformation function is as follows:
+
+The distance value of 1/3 is subtracted from the input distance. This is because the three state angles are separated by 1/3 (π/3 and 2π/3) in the range [0, 2π).
+The resulting value is multiplied by the constant, which determines how quickly the function transitions between 0 and 1.
+The exponential function is applied to this value, and the result is negated.
+Finally, the value is scaled to the range [0, 1] using the sigmoid-like transformation 1 / (1 + exp(-x)).
+
+The transformed distances (probabilities) are then used in the position update process to determine the new state of the particle. The if-elif-else statements in the code compare the transformed distances to random numbers between 0 and 1 to decide whether the particle should remain in its current state, move to a new state, or explore a random state.
+The logic behind this process is to balance exploration (moving to new states) and exploitation (staying in the current state) based on the transformed distances (probabilities). The random number comparison introduces a stochastic element to prevent the algorithm from getting stuck in local optima.
+In summary, the calculateDistance function, the constants used, the transformation function, and the position update process work together to map the particle's position to one of the three states (no switch, sectionalizer, or breaker) in the TPSO algorithm. The distances are transformed into probabilities, which are then used to determine the new state of the particle in a probabilistic manner, while allowing for exploration and exploitation.
+
+
+calculateECOSTForContingency:
+
+This function calculates the expected cost of outage (ECOST) for a given contingency scenario, considering the distribution system configuration, switch placements, and customer damage functions.
+The logic behind this function is to simulate the fault isolation and restoration process for the given contingency scenario and calculate the ECOST based on the interruption duration and customer damage functions.
+
+
+Finding the first breaker:
+
+In the case of a fault, the first step is to isolate the faulted section by opening the closest breaker upstream of the fault location.
+The code finds the first breaker by iterating over the list of breaker locations and identifying the first breaker that comes before the faulted section.
+If no breaker is found before the faulted section, it assumes that the entire system is de-energized, and the ECOST is calculated based on the repair time for all load points.
+
+
+Finding the first sectionalizer:
+
+After finding the first breaker, the code looks for the first sectionalizer (if any) between the breaker and the faulted section.
+The purpose of finding the sectionalizer is to determine if there is an opportunity to restore power to some load points by opening the sectionalizer and using alternative supply paths (if available).
+If a sectionalizer is found, the ECOST calculation process is different, as explained in the next point.
+
+
+De-energized load points:
+
+The concept of de-energized load points refers to the load points (customers) that are disconnected from the power supply due to the fault and the isolation process.
+If no sectionalizer is found, all load points downstream of the first breaker are considered de-energized, and the ECOST is calculated based on the repair time for those load points.
+If a sectionalizer is found, the ECOST calculation involves multiple steps:
+a. Calculate the ECOST for the de-energized load points between the breaker and the sectionalizer, considering the sectionalizer switching time.
+b. Calculate the ECOST for the new set of de-energized load points between the sectionalizer and the faulted section, considering the loop switch switching time (if alternative paths are available).
+c. Calculate the ECOST for the remaining de-energized load points in the faulted section, considering the repair time.
+
+
+
+The logic behind these steps is to accurately simulate the fault isolation and restoration process, taking into account the presence and locations of breakers and sectionalizers, as well as the availability of alternative supply paths. By considering the different switching times and repair times, the ECOST calculation captures the overall impact of the contingency on the customers, based on their interruption durations and customer damage functions.
+The findDeEnergizedLoadPoints function is a helper function used to identify the load points that are de-energized based on the starting index (e.g., the location of the breaker or sectionalizer). It simply collects all the load points from the given starting index until the end of the system.
+Overall, the calculateECOSTForContingency function implements the logic for simulating the fault isolation and restoration process, considering the distribution system configuration, switch placements, and customer damage functions, to accurately calculate the expected cost of outage for a given contingency scenario.
