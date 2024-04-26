@@ -18,29 +18,132 @@ TPSO(distributionSystem, contingencyScenarios, customerDamageFunctions, loadData
     
     return global best solution and fitness
 
-calculateFitness(position, distributionSystem)
-    Decode position to switch types (none, sectionalizer, breaker)
-    Create system with decoded switch types
-    
-    Initialize total cost to 0
-    for each contingency scenario:
-        Calculate cost for the contingency using calculateECOSTForContingency
-        Add cost to total cost
-    
-    Calculate investment cost based on switch types and costs
-    Return total cost + investment cost
 
-calculateECOSTForContingency(contingency, system)
-    Initialize total cost to 0
-    Find first breaker and sectionalizer upstream of faulted section
-    
-    if no breaker found:
-        Calculate cost for all load points with repair time
-    else if no sectionalizer found:
-        Calculate cost for de-energized load points upstream of breaker with repair time
+
+
+function calculateECOSTForContingency(contingency, system):
+    faultedSection = contingency.faultedSection
+    repairTime = contingency.repairTime
+    totalECOST = 0
+
+    breakers = findBreakers(system)
+    sectionalizers = findSectionalizers(system)
+
+    firstBreaker = findFirstBreaker(faultedSection, breakers)
+
+    if firstBreaker is None:
+        for each loadPoint in loadData:
+            totalECOST += calculateECOSTForLoadPoint(loadPoint, repairTime)
+        return totalECOST
+
+    firstSectionalizer = findFirstSectionalizer(faultedSection, sectionalizers, firstBreaker)
+
+    if firstSectionalizer is None:
+        deEnergizedLoadPoints = findDeEnergizedLoadPoints(firstBreaker + 1, system)
+        for each loadPoint in deEnergizedLoadPoints:
+            totalECOST += calculateECOSTForLoadPoint(loadPoint, repairTime)
     else:
-        Calculate cost for de-energized load points between breaker and sectionalizer with sectionalizer switching time
-        Calculate cost for de-energized load points between sectionalizer and faulted section with loop switch switching time
-        Calculate cost for remaining faulty zone with repair time
+        deEnergizedLoadPoints = findDeEnergizedLoadPoints(firstBreaker + 1, system)
+        sectionalizerSwitchingTime = 5
+        for each loadPoint in deEnergizedLoadPoints:
+            totalECOST += calculateECOSTForLoadPoint(loadPoint, sectionalizerSwitchingTime)
+
+        newDeEnergizedLoadPoints = findDeEnergizedLoadPoints(firstSectionalizer + 1, system)
+        loopSwitchSwitchingTime = 5
+        for each loadPoint in newDeEnergizedLoadPoints:
+            totalECOST += calculateECOSTForLoadPoint(loadPoint, loopSwitchSwitchingTime)
+
+        remainingFaultyZone = findDeEnergizedLoadPoints(faultedSection, system)
+        for each loadPoint in remainingFaultyZone:
+            totalECOST += calculateECOSTForLoadPoint(loadPoint, repairTime)
+
+    return totalECOST
+
+
+
+function calculateFitness(position, distributionSystem):
+    decodedPosition = decodePosition(position)
+    system = mapSystemToPosition(distributionSystem, decodedPosition)
+
+    totalECOST = 0
+    for each contingency in contingencyScenarios:
+        totalECOST += calculateECOSTForContingency(contingency, system)
+
+    investmentCost = sumInvestmentCosts(decodedPosition)
+
+    return totalECOST + investmentCost
+
+
+
+function calculateDistance(vector1, vector2):
+    distances = []
+    for i from 0 to length(vector1):
+        angle1 = vector1[i]
+        angle2 = vector2[i]
+        distance = min(abs(angle1 - angle2), 2 * PI - abs(angle1 - angle2))
+        distances.append(distance)
+    return distances
+
+
+
+
+function findFirstBreaker(faultedSection, breakers):
+    for each breaker in breakers:
+        if breaker < faultedSection:
+            return breaker
+    return None
+
+
+
+function findFirstSectionalizer(faultedSection, sectionalizers, firstBreaker):
+    for each sectionalizer in sectionalizers:
+        if sectionalizer < faultedSection and sectionalizer > firstBreaker:
+            return sectionalizer
+    return None
+
+
+
+
+function findDeEnergizedLoadPoints(startIndex, system):
+    deEnergizedLoadPoints = []
+    for i from startIndex to length(loadData):
+        deEnergizedLoadPoints.append(loadData[i])
+    return deEnergizedLoadPoints
+
+
+
+
+function decodePosition(position):
+    decodedPosition = []
+    for each angle in position:
+        if angle < PI / 3:
+            decodedPosition.append(0)  # No switch
+        else if angle < 2 * PI / 3:
+            decodedPosition.append(1)  # Sectionalizer
+        else:
+            decodedPosition.append(2)  # Breaker
+    return decodedPosition
+
+
+
+function mapSystemToPosition(distributionSystem, decodedPosition):
+    system = []
+    for i from 0 to length(distributionSystem):
+        element = distributionSystem[i]
+        type = decodedPosition[i]
+        switch = None
+        if type == 1:
+            switch = "sectionalizer"
+        else if type == 2:
+            switch = "breaker"
+        system.append({"id": element.id, "type": switch})
+    return system
+
+
+
     
-    Return total cost
+function sumInvestmentCosts(decodedPosition):
+    numSectionalizers = count(decodedPosition, 1)
+    numBreakers = count(decodedPosition, 2)
+    investmentCost = numSectionalizers * sectionalizerCost + numBreakers * breakerCost
+    return investmentCost
